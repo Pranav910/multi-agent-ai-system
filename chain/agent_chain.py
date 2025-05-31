@@ -1,0 +1,6 @@
+from prompts.classifier_agent_prompt import classifier_agent_prompt_template
+from models.classifier_model import llm
+from langchain_core.output_parsers import StrOutputParser
+
+
+classifier_agent_chain = classifier_agent_prompt_template | llm 

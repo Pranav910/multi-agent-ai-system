@@ -1,0 +1,19 @@
+# ignore all __pycache__ folders
+/__pycache__
+/agents/__pycache__
+/api/__pycache__
+/api/v1/__pycache__
+/api/v1/endpoints/__pycache__
+/chain/__pycache__
+/core/__pycache__
+/models/__pycache__
+/prompts/__pycache__
+/schema/__pycache__
+/schema/pydantic_schemas/__pycache__
+/tools/__pycache__
+
+# ignore all test files
+/test.py
+
+# main.py
+/main.py

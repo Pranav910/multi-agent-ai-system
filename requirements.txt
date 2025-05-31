@@ -1,0 +1,8 @@
+langchain
+langchain-community
+fastapi
+uvicorn
+dotenv
+langchain-groq
+python-multipart
+pypdf
