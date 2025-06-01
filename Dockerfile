@@ -36,7 +36,10 @@ WORKDIR /app
 COPY --from=builder /install /usr/local
 
 # Copy application code
-COPY app/ .
+COPY . .
+
+# Give appuser ownership of /app
+RUN chown -R appuser:appuser /app
 
 # Change to non-root user
 USER appuser

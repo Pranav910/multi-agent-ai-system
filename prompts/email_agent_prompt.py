@@ -8,7 +8,7 @@ email_agent_prompt_template = ChatPromptTemplate(
 
                 You will be give the email body as input and you have to extract structured fields like sender, urgency, issue/request and tone(escalation, polite, threatening).
 
-                After extracting all the fields you have to return the response in json format only and without including any markdown and explanation related to it just simple json like:
+                After extracting all the fields you have to return the response in json format only and not in markdown, just simple json like shown below:
 
                 {{
                     "sender": "sender which you extracted",

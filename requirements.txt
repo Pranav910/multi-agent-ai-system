@@ -6,3 +6,4 @@ dotenv
 langchain-groq
 python-multipart
 pypdf
+jsonschema

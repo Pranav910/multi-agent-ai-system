@@ -9,6 +9,7 @@ import httpx
 from agents.json_agent import JsonAgent
 import shutil
 from agents.pdf_agent import PdfAgent
+from chain.email_agent_final_response_chain import email_agent_final_response_chain
 
 # Configure the logging
 logger = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ async def escalate(file: UploadFile = File(...)):
         logger.info("Analyzed email content")
 
         # Conver the analyzed content to python dictionary
+        print(f"analyzed_email_result: {analyzed_email_result}")
         analyzed_email_result = json.loads(analyzed_email_result)
 
         # If the issue type in the email is complaint and urgency is high and tone is anger     
@@ -88,7 +90,7 @@ async def escalate(file: UploadFile = File(...)):
 
                 # Route the action to POST /crm/escalate
                 result = await client.post("http://localhost:8000/api/v1/crm/escalate",
-                    json={'urgency': 'high', 'tone': 'escalate'},
+                    json={'email': classified_result['Question'], 'urgency': analyzed_email_result['urgency'], 'tone': analyzed_email_result['tone'], 'intent': classified_result['Final Answer']['intent']},
                     headers={
                         'Content-Type': 'application/json'
                     }
@@ -96,60 +98,77 @@ async def escalate(file: UploadFile = File(...)):
     # Else check if the format is json
     elif classified_result['Final Answer']['format'] == "json":
 
-        logger.info("Take action to json agent...")
+        try:
+            logger.info("Take action to json agent...")
 
-        # Instantiating json agent
-        json_agent = JsonAgent()
+            # Instantiating json agent
+            json_agent = JsonAgent()
 
-        logger.info("Loading json content")
-        # Loading json data from the recieved file
-        json_data = json.loads(content)
-        logger.info("Loaded json content")
+            logger.info("Loading json content")
+            # Loading json data from the recieved file
+            json_data = json.loads(content)
+            logger.info("Loaded json content")
+            
+            logger.info("Validating json data...")
+            # Check if the json validates with the pre-defined schema
+            if json_agent.validate_json_schema(json_data):
+
+                logger.info("Json data is valid")
+                logger.info("\n")
+
+                with open('classifier.log', 'r') as file:
+                    content = file.read()
+
+                # Return positive message is the json is valid
+                return {"message": "the json is valid", "logs": content}
         
-        logger.info("Validating json data...")
-        # Check if the json validates with the pre-defined schema
-        if json_agent.validate_json_schema(json_data):
-
-            logger.info("Json data is valid")
-            # Return positive message is the json is valid
-            return {"message": "the json is valid"}
         
-        # If the json is not valid then route the api call to : POST /rist_alert
-        async with httpx.AsyncClient() as client:
+        except:
+            # If the json is not valid then route the api call to : POST /rist_alert
+            async with httpx.AsyncClient() as client:
 
-            logger.info("Json data is not valid")
-            logger.info("Calling action route: POST /risk_alert")
+                logger.info("Json data is not valid")
+                logger.info("Calling action route: POST /risk_alert")
 
-            # Route the action to POST /risk_alert
-            result = await client.post("http://localhost:8000/api/v1/risk_alert",
-                headers={
-                    'Content-Type': 'application/json'
-                }
-            )
-
-        return {"message": result.json()}
+                # Route the action to POST /risk_alert
+                result = await client.post("http://localhost:8000/api/v1/risk_alert",
+                    headers={
+                        'Content-Type': 'application/json'
+                    }
+                )
     # Finally the content is in pdf format
     else:
         # Instantiate pdf agent
         pdf_agent = PdfAgent()
         result = pdf_agent.analyze_pdf(content)
+
+        logger.info("\n")
+
+        with open('classifier.log', 'r') as file:
+            content = file.read()
         
         # Return the json converted pdf content
-        return {"message": result}
+        return {"message": result, "logs": content}
 
-    return {"message": result.json()["message"]}
+    with open('classifier.log', 'r') as file:
+        content = file.read()
+
+    return {"message": result.json()["final_response"], "logs": content}
 
 # /crm/escalate route
 @router.post("/crm/escalate")
 def escalate(data: dict[str, Any]):
     logger.info("Control is inside the route: POST /crm/escalate")
-    return {"message": data}
+    logger.info("\n")
+    final_email_response = email_agent_final_response_chain.invoke(data)
+    return {"final_response": final_email_response}
 
 # /rist_alert route
 @router.post("/risk_alert")
 def risk_alert():
     logger.info("Control is inside the route: POST /rist_alert")
-    return {"message": "risk alert recieved"}
+    logger.info("\n")
+    return {"final_response": "the provided json data is invalid and risk alert recieved"}
 
 @router.get("/healthcheck")
 def healthcheck():

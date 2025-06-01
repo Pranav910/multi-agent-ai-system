@@ -1,0 +1,5 @@
+from prompts.email_agent_final_response_prompt import email_agent_final_response_prompt
+from models.classifier_model import llm
+from langchain_core.output_parsers import StrOutputParser
+
+email_agent_final_response_chain = email_agent_final_response_prompt | llm | StrOutputParser()
