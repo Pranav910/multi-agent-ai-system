@@ -10,6 +10,7 @@ from agents.json_agent import JsonAgent
 import shutil
 from agents.pdf_agent import PdfAgent
 from chain.email_agent_final_response_chain import email_agent_final_response_chain
+import chardet
 
 # Configure the logging
 logger = logging.getLogger(__name__)
@@ -29,6 +30,26 @@ console_handler.setFormatter(formatter)
 # Add both the file and console log handlers
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
+
+def read_log_file():
+
+    UPLOAD_DIR = Path(__file__).resolve().parents[3]
+    file_path = UPLOAD_DIR / "classifier.log"
+
+    # Detect encoding
+    with open(file_path, 'rb') as f:
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+    
+    # Read with detected encoding
+    with open(file_path, 'r', encoding=encoding, errors='replace') as f:
+        content = f.read()
+    
+    with open(file_path, 'w') as f:
+        pass
+
+    return content
 
 router = APIRouter()
 
@@ -116,7 +137,7 @@ async def escalate(file: UploadFile = File(...)):
                 logger.info("Json data is valid")
                 logger.info("\n")
 
-                with open('classifier.log', 'r') as file:
+                with open('classifier.log', 'rb') as file:
                     content = file.read()
 
                 # Return positive message is the json is valid
@@ -144,16 +165,14 @@ async def escalate(file: UploadFile = File(...)):
 
         logger.info("\n")
 
-        with open('classifier.log', 'r') as file:
-            content = file.read()
+        log_content = read_log_file()
         
         # Return the json converted pdf content
-        return {"message": result, "logs": content}
+        return {"message": result, "logs": log_content}
 
-    with open('classifier.log', 'r') as file:
-        content = file.read()
+    log_content = read_log_file()
 
-    return {"message": result.json()["final_response"], "logs": content}
+    return {"message": result.json()["final_response"], "logs": log_content}
 
 # /crm/escalate route
 @router.post("/crm/escalate")

@@ -17,3 +17,6 @@
 
 # main.py
 /main.py
+
+# logs file
+/classifier.log

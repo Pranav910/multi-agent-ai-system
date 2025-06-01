@@ -7,3 +7,4 @@ langchain-groq
 python-multipart
 pypdf
 jsonschema
+chardet
